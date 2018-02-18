@@ -1,11 +1,21 @@
 using DataFrames;
 using CSV;
 using PyPlot;
+using ArgParse;
 
-function input_data()
-    iris = readtable("final_normal.txt", nrows=1000000, eltypes=[Float64], nastrings=["", "sendto:"])
+function input_data_rtt(parsed_args)
+    iris = readtable(parsed_args["file1"], nrows=parsed_args["lines"], eltypes=[Float64], nastrings=["", "sendto:"])
     deleterows!(iris,find(isna(iris[1])))
     deleterows!(iris,find(x-> x > 10000000, iris[1]))
+    return iris
+end
+
+function input_data_nictonic(parsed_args)
+    iris = readtable(parsed_args["file1"], nrows=parsed_args["lines"],
+     eltypes=[Float64], nastrings=["", "sendto:", "-9223372036854775808", "Connection"])
+    deleterows!(iris,find(isna(iris[1])))
+    deleterows!(iris,find(x-> x > 10000000, iris[1]))
+    deleterows!(iris,find(x-> x == 0.0, iris[1]))
     return iris
 end
 
@@ -39,16 +49,16 @@ function e_histogram(input, bins)
 end
 
 function plot_histogram(iris)
-    x, y = e_histogram(iris[1], 10)
+    x, y = e_histogram(iris, 10)
     fig = figure("pyplot_histogram") # Not strictly required
     ax = axes() # Not strictly required
     # plt[:bar](x, y, color="red",align="center",linewidth=10.0) # Histogram
     # bar(x, y, color="red",align="center",linewidth=10.0) # Histogram
-    plot(x, y) # Histogram
+    plt[:stem](x, y) # Histogram
     grid("on")
-    xlabel("X")
-    ylabel("Y")
-    title("Histogram")
+    xlabel("Latency (us)")
+    ylabel("Count")
+    title("Latency Histogram")
     plt[:show]()
 end
 
@@ -67,7 +77,6 @@ function calc_ecdf(input)
     append!(xpoints, collect(99.1:0.1:99.9))
     append!(xpoints, collect(99.91:0.01:99.99))
     append!(xpoints, collect(99.991:0.001:99.999))
-    println(xpoints)
     ypoints = []
     for i in xpoints
         aaaa = convert(Int64, floor(i * step))
@@ -81,7 +90,7 @@ end
 
 function plot_ecdf(input)
     x, y = calc_ecdf(input)
-    fig = figure("pyplot_histogram") # Not strictly required
+    fig = figure("pyplot_ECDF") # Not strictly required
     ax = axes() # Not strictly required
     # plt[:bar](x, y, color="red",align="center",linewidth=10.0) # Histogram
     # bar(x, y, color="red",align="center",linewidth=10.0) # Histogram
@@ -93,12 +102,37 @@ function plot_ecdf(input)
     plt[:show]()
 end
 
-function main()
-    iris = input_data()
+function main(args)
+    s = ArgParseSettings(description = "Data parsing utility")
+
+    @add_arg_table s begin
+        "--nictonic" , "-n"
+            action = :store_true
+        "--histogram"
+            action = :store_true
+        "file1"
+            required = true
+        "--start" , "-s"
+            default = 1000
+        "--lines" , "-l"
+            default = 1000000
+    end
+
+    parsed_args = parse_args(s)
+    iris = []
+    if parsed_args["nictonic"]
+        iris = input_data_nictonic(parsed_args)
+    else
+        iris = input_data_rtt(parse_args)
+    end
     print_statistics(iris)
     #plotter(iris)
+    if parsed_args["histogram"]
+        plot_histogram(iris[1])
+        return
+    end
     plot_ecdf(iris[1])
 
 end
 
-main()
+main(ARGS)

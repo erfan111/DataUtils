@@ -30,6 +30,9 @@ It imports a file containing the Round-trip times, parses them and removes the n
     - GZip
     - PyPlot
     - PyCall
+	- ArgParse
 7. Usage:  
-`julia percentile.jl <file_name>`
+`julia percentile.jl <file_name> [-n] [-s START] [-l LINES] [--histogram] `  
+-- -n : Parse as nic-to-nic timestamps  
+-- --histogram : draw histogram instead of ECDF  
 **Modify the parameters that are hard-coded in the file as neccessary**  
