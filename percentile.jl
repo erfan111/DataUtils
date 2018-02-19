@@ -4,28 +4,55 @@ using PyPlot;
 using ArgParse;
 
 function input_data_rtt(parsed_args)
-    iris = readtable(parsed_args["file1"], nrows=parsed_args["lines"], eltypes=[Float64], nastrings=["", "sendto:"])
+    iris = readtable(parsed_args["file1"], nrows=parsed_args["lines"],
+     eltypes=[Float64], nastrings=["", "sendto:", "ERROR"])
     deleterows!(iris,find(isna(iris[1])))
     deleterows!(iris,find(x-> x > 10000000, iris[1]))
-    return iris
+    iris2 = []
+    if parsed_args["compare"] != nothing
+        iris2 = readtable(parsed_args["compare"], nrows=parsed_args["lines"],
+         eltypes=[Float64], nastrings=["", "sendto:", "ERROR"])
+        deleterows!(iris2,find(isna(iris2[1])))
+        deleterows!(iris2,find(x-> x > 10000000, iris2[1]))
+    end
+    println("returning from input_data_rtt")
+    return iris, iris2
 end
 
 function input_data_nictonic(parsed_args)
     iris = readtable(parsed_args["file1"], nrows=parsed_args["lines"],
-     eltypes=[Float64], nastrings=["", "sendto:", "-9223372036854775808", "Connection"])
+     eltypes=[Float64], nastrings=["", "sendto:", "-9223372036854775808", "Connection", "connecting:"])
     deleterows!(iris,find(isna(iris[1])))
     deleterows!(iris,find(x-> x > 10000000, iris[1]))
     deleterows!(iris,find(x-> x == 0.0, iris[1]))
-    return iris
+    iris2 = []
+    if parsed_args["compare"] != nothing
+        iris2 = readtable(parsed_args["compare"], nrows=parsed_args["lines"],
+         eltypes=[Float64], nastrings=["", "sendto:", "-9223372036854775808", "Connection", "connecting:"])
+         deleterows!(iris2,find(isna(iris2[1])))
+         deleterows!(iris2,find(x-> x > 10000000, iris2[1]))
+         deleterows!(iris2,find(x-> x == 0.0, iris2[1]))
+    end
+    return iris, iris2
 end
 
-function print_statistics(input)
+function print_statistics(input, input2)
+    println("Input1 stats ============")
     println("average: ", mean(input[1]))
     println("99-percentile: ", percentile(input[1],99))
     println("99.9-percentile: ", percentile(input[1],99.9))
     println("99.99-percentile: ", percentile(input[1],99.99))
     println("max: ", maximum(input[1]))
     println("min: ", minimum(input[1]))
+    if input2 != []
+        println("Input2 stats ============")
+        println("average: ", mean(input2[1]))
+        println("99-percentile: ", percentile(input2[1],99))
+        println("99.9-percentile: ", percentile(input2[1],99.9))
+        println("99.99-percentile: ", percentile(input2[1],99.99))
+        println("max: ", maximum(input2[1]))
+        println("min: ", minimum(input2[1]))
+    end
 end
 
 function e_histogram(input, bins)
@@ -48,7 +75,7 @@ function e_histogram(input, bins)
     return x, y
 end
 
-function plot_histogram(iris)
+function plot_histogram(iris, dual=nothing)
     x, y = e_histogram(iris, 10)
     fig = figure("pyplot_histogram") # Not strictly required
     ax = axes() # Not strictly required
@@ -59,6 +86,11 @@ function plot_histogram(iris)
     xlabel("Latency (us)")
     ylabel("Count")
     title("Latency Histogram")
+    if dual != nothing
+        x2, y2 = e_histogram(dual, 10)
+        plt[:stem](x2, y2, linefmt="C1:", markerfmt="C1*") # Histogram
+    end
+
     plt[:show]()
 end
 
@@ -88,17 +120,24 @@ function calc_ecdf(input)
     return xpoints, ypoints
 end
 
-function plot_ecdf(input)
+function plot_ecdf(input, dual=nothing)
     x, y = calc_ecdf(input)
     fig = figure("pyplot_ECDF") # Not strictly required
     ax = axes() # Not strictly required
     # plt[:bar](x, y, color="red",align="center",linewidth=10.0) # Histogram
     # bar(x, y, color="red",align="center",linewidth=10.0) # Histogram
-    plot(y, x) # Histogram
+    plot(y, x, label="First file") # Histogram
     grid("on")
     xlabel("Latency (us)")
     ylabel("Percentile")
     title("ECDF")
+    x2 = []
+    y2 = []
+    if dual != nothing
+        x2, y2 = calc_ecdf(dual)
+        plot(y2, x2, label="Second file")
+        plt[:legend]()
+    end
     plt[:show]()
 end
 
@@ -116,23 +155,35 @@ function main(args)
             default = 1000
         "--lines" , "-l"
             default = 1000000
+        "--compare", "-c"
     end
 
     parsed_args = parse_args(s)
     iris = []
+    iris2 = []
+    for (key,val) in parsed_args
+        println("  $key  =>  $(repr(val))")
+    end
     if parsed_args["nictonic"]
-        iris = input_data_nictonic(parsed_args)
+        iris, iris2 = input_data_nictonic(parsed_args)
     else
-        iris = input_data_rtt(parse_args)
+        iris, iris2 = input_data_rtt(parsed_args)
     end
-    print_statistics(iris)
+    print_statistics(iris, iris2)
     #plotter(iris)
-    if parsed_args["histogram"]
-        plot_histogram(iris[1])
-        return
+    if parsed_args["compare"] != nothing
+        if parsed_args["histogram"]
+            plot_histogram(iris[1], iris2[1])
+            return
+        end
+        plot_ecdf(iris[1], iris2[1])
+    else
+        if parsed_args["histogram"]
+            plot_histogram(iris[1])
+            return
+        end
+        plot_ecdf(iris[1])
     end
-    plot_ecdf(iris[1])
-
 end
 
 main(ARGS)

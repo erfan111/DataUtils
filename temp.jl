@@ -15,12 +15,17 @@ function main(args)
             default = 1000
         "--lines" , "-l"
             default = 1000000
+        "--compare", "-c"
+            default = false
     end
 
     parsed_args = parse_args(s) # the result is a Dict{String,Any}
     println("Parsed args:")
     for (key,val) in parsed_args
         println("  $key  =>  $(repr(val))")
+    end
+    if parsed_args["compare"]
+        println("nothing")
     end
 end
 
