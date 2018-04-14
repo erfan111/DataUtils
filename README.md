@@ -1,4 +1,4 @@
-# Julia Installation and dependencies
+# Julia and Python scripts for data representation and processing: Installation and dependencies
 
 This repository contains Julia and Python scripts for processing RPC RTT log files and plotting them.
 It imports a file containing the Round-trip times, parses them and removes the noisy data. They can be modified to create different plots.  
@@ -27,12 +27,15 @@ It imports a file containing the Round-trip times, parses them and removes the n
 
 6. Install the following julia packages:
     - DataFrames
+	- CSV
     - GZip
     - PyPlot
     - PyCall
 	- ArgParse
+`julia> Pkg.add('ArgParse')`
 7. Usage:  
-`julia percentile.jl <file_name> [-n] [-s START] [-l LINES] [--histogram] `  
+`julia percentile.jl <file_name> [-n] [-s START] [-l LINES] [--histogram] [--scatter] -c <second_file> `  
 -- -n : Parse as nic-to-nic timestamps  
--- --histogram : draw histogram instead of ECDF  
+-- --histogram : draw histogram instead of ECDF
+-- --scatter : draw X-Y plots 
 **Modify the parameters that are hard-coded in the file as neccessary**  

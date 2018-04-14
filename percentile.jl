@@ -94,6 +94,26 @@ function plot_histogram(iris, dual=nothing)
     plt[:show]()
 end
 
+function plot_scatter(iris, dual=nothing)
+    x = collect(1:length(iris))
+    fig = figure("pyplot_histogram") # Not strictly required
+    ax = axes() # Not strictly required
+    # plt[:bar](x, y, color="red",align="center",linewidth=10.0) # Histogram
+    # bar(x, y, color="red",align="center",linewidth=10.0) # Histogram
+    plt[:scatter](x, iris, label="file 1") # Histogram
+    grid("on")
+    xlabel("ًReq #")
+    ylabel("Latency (us)")
+    title("Latency Scatter")
+    if dual != nothing
+        x2 = collect(1:length(dual))
+        plt[:scatter](x2, dual, label="file 2") # Histogram
+        plt[:legend]()
+    end
+
+    plt[:show]()
+end
+
 function input_data()
     iris = readtable("final_normal.txt", nrows=10000, eltypes=[Float64], nastrings=["", "sendto:"])
     deleterows!(iris,find(isna(iris[1])))
@@ -138,6 +158,7 @@ function plot_ecdf(input, dual=nothing)
         plot(y2, x2, label="Second file")
         plt[:legend]()
     end
+    savefig("test.png")
     plt[:show]()
 end
 
@@ -156,6 +177,8 @@ function main(args)
         "--lines" , "-l"
             default = 1000000
         "--compare", "-c"
+        "--scatter"
+            action = :store_true
     end
 
     parsed_args = parse_args(s)
@@ -175,11 +198,17 @@ function main(args)
         if parsed_args["histogram"]
             plot_histogram(iris[1], iris2[1])
             return
+        elseif parsed_args["scatter"]
+            plot_scatter(iris[1], iris2[1])
+            return
         end
         plot_ecdf(iris[1], iris2[1])
     else
         if parsed_args["histogram"]
             plot_histogram(iris[1])
+            return
+        elseif parsed_args["scatter"]
+            plot_scatter(iris[1])
             return
         end
         plot_ecdf(iris[1])
