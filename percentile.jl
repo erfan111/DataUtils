@@ -19,6 +19,18 @@ function input_data_rtt(parsed_args)
     return iris, iris2
 end
 
+function input_data_mutilate(parsed_args)
+    iris = readtable(parsed_args["file1"], nrows=parsed_args["lines"],
+     eltypes=[Float64, Float64], separator=' ')
+    iris2 = []
+    if parsed_args["compare"] != nothing
+        iris2 = readtable(parsed_args["compare"], nrows=parsed_args["lines"],
+         eltypes=[Float64], separator=' ')
+        return iris[:, [2]], iris2[:, [2]]
+    end
+    return iris[:, [2]], []
+end
+
 function input_data_nictonic(parsed_args)
     iris = readtable(parsed_args["file1"], nrows=parsed_args["lines"],
      eltypes=[Float64], nastrings=["", "sendto:", "-9223372036854775808", "Connection", "connecting:"])
@@ -100,14 +112,14 @@ function plot_scatter(iris, dual=nothing)
     ax = axes() # Not strictly required
     # plt[:bar](x, y, color="red",align="center",linewidth=10.0) # Histogram
     # bar(x, y, color="red",align="center",linewidth=10.0) # Histogram
-    plt[:scatter](x, iris, label="file 1") # Histogram
+    plt[:scatter](x, iris, label="file 1", marker="+") # Histogram
     grid("on")
     xlabel("ًReq #")
     ylabel("Latency (us)")
     title("Latency Scatter")
     if dual != nothing
         x2 = collect(1:length(dual))
-        plt[:scatter](x2, dual, label="file 2") # Histogram
+        plt[:scatter](x2, dual, label="file 2", marker=".") # Histogram
         plt[:legend]()
     end
 
@@ -168,16 +180,20 @@ function main(args)
     @add_arg_table s begin
         "--nictonic" , "-n"
             action = :store_true
-        "--histogram"
+        "--mutilate" , "-m"
             action = :store_true
         "file1"
             required = true
         "--start" , "-s"
-            default = 1000
+            arg_type = Int
+            default = 1
         "--lines" , "-l"
+            arg_type = Int
             default = 1000000
         "--compare", "-c"
         "--scatter"
+            action = :store_true
+        "--histogram"
             action = :store_true
     end
 
@@ -189,6 +205,8 @@ function main(args)
     end
     if parsed_args["nictonic"]
         iris, iris2 = input_data_nictonic(parsed_args)
+    elseif parsed_args["mutilate"]
+        iris, iris2 = input_data_mutilate(parsed_args)
     else
         iris, iris2 = input_data_rtt(parsed_args)
     end
